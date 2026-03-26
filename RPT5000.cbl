@@ -3,15 +3,15 @@
        PROGRAM-ID. RPT5000.
       *****************************************************************
       *  Programmers: Tristan Joubert
-      *  Date.......: 19 March 2025
-      *  GitHub URL.: https://github.com/TJoubert004/CobolAssignment4
+      *  Date.......: 24 March 2025
+      *  GitHub URL.: https://github.com/TJoubert004/CobolAssignment5
       *  Description: The RPT5000 program is an enhanced COBOL
       *               reporting tool. It serves as a data processing
       *               utility that reads customer financial records
       *               from a master input file (CUSTMAST) and
       *               generates a formatted, multi-columnar
       *               Year-To-Date (YTD) Sales Report. This also shows
-      *               the branch totals
+      *               the branch totals and SalesRep Total
       *****************************************************************
        ENVIRONMENT DIVISION.
 
@@ -107,22 +107,22 @@
            05  FILLER          PIC X(36)   VALUE SPACE.
 
        01  HEADING-LINE-3.
-           05  FILLER PIC X(8) VALUE "BRANCH  ".
+           05  FILLER PIC X(13) VALUE "BRANCH SALES ".
            05  FILLER PIC X(31) VALUE "CUST  ".
            05  FILLER PIC X(14) VALUE "SALES       ".
            05  FILLER PIC X(14) VALUE "SALES    ".
            05  FILLER PIC X(14) VALUE "CHANGE      ".
            05  FILLER PIC X(7)  VALUE "CHANGE ".
-           05  FILLER PIC X(52) VALUE SPACE.
+           05  FILLER PIC X(47) VALUE SPACE.
 
        01  HEADING-LINE-4.
-           05  FILLER PIC X(8) VALUE " NUM    ".
+           05  FILLER PIC X(13) VALUE " NUM   REP   ".
            05  FILLER PIC X(31) VALUE "NUM    CUSTOMER NAME".
            05  FILLER PIC X(14) VALUE "THIS YTD    ".
            05  FILLER PIC X(14) VALUE "LAST YTD      ".
            05  FILLER PIC X(14) VALUE "AMOUNT      ".
            05  FILLER PIC X(7)  VALUE "PERCENT".
-           05  FILLER PIC X(39) VALUE SPACE.
+           05  FILLER PIC X(34) VALUE SPACE.
 
        01  HEADING-LINE-5.
            05  FILLER PIC X(6)  VALUE ALL "-".
@@ -186,8 +186,8 @@
            05  FILLER              PIC X(40)   VALUE " **".
 
        01  GRAND-TOTAL-LINE-1.
-           05  FILLER              PIC X(24)   VALUE SPACE.
-           05  FILLER              PIC X(14)   VALUE "GRAND TOTAL".
+           05  FILLER              PIC X(23)   VALUE SPACE.
+           05  FILLER              PIC X(20)   VALUE "GRAND TOTAL".
            05  FILLER              PIC X(10)   VALUE ALL "=".
            05  FILLER              PIC X(4)    VALUE SPACE.
            05  FILLER              PIC X(10)   VALUE ALL "=".
@@ -195,10 +195,10 @@
            05  FILLER              PIC X(10)   VALUE ALL "=".
            05  FILLER              PIC X(3)    VALUE SPACE.
            05  FILLER              PIC X(7)    VALUE ALL "=".
-           05  FILLER              PIC X(45)   VALUE "***".
+           05  FILLER              PIC X(37)   VALUE "   ".
 
        01  GRAND-TOTAL-LINE-2.
-           05  FILLER              PIC X(36)   VALUE SPACE.
+           05  FILLER              PIC X(41)   VALUE SPACE.
            05  GTL-SALES-THIS-YTD  PIC Z,ZZZ,ZZ9.99-.
            05  FILLER              PIC X(1)    VALUE SPACE.
            05  GTL-SALES-LAST-YTD  PIC Z,ZZZ,ZZ9.99-.
@@ -206,7 +206,7 @@
            05  GTL-CHANGE-AMOUNT   PIC Z,ZZZ,ZZ9.99-.
            05  FILLER              PIC X(4)    VALUE SPACE.
            05  GTL-CHANGE-PERCENT  PIC ZZ9.9-.
-           05  FILLER              PIC X(42)   VALUE SPACE.
+           05  FILLER              PIC X(37)   VALUE "***".
 
        PROCEDURE DIVISION.
        000-PREPARE-SALES-REPORT.
