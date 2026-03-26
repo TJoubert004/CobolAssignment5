@@ -47,9 +47,13 @@
        WORKING-STORAGE SECTION.
        01  SWITCHES.
            05  CUSTMAST-EOF-SWITCH     PIC X    VALUE "N".
+               88 CUSTMAST-EOF                  VALUE "Y".
            05  FIRST-RECORD-SWITCH     PIC X    VALUE "Y".
+               88 FIRST-RECORD                  VALUE "Y"
+                                                FALSE "N".
 
        01 CONTROL-FIELDS.
+           05 OLD-SALESREP-NUMBER      PIC 99.
            05 OLD-BRANCH-NUMBER        PIC 99.
 
        01  PRINT-FIELDS.
@@ -59,6 +63,8 @@
            05  SPACE-CONTROL   PIC S9.
 
        01  TOTAL-FIELDS.
+           05  SALESREP-TOTAL-THIS-YTD   PIC S9(6)V99   VALUE ZERO.
+           05  SALESREP-TOTAL-LAST-YTD   PIC S9(6)V99   VALUE ZERO.
            05  BRANCH-TOTAL-THIS-YTD  PIC S9(6)V99   VALUE ZERO.
            05  BRANCH-TOTAL-LAST-YTD  PIC S9(6)V99   VALUE ZERO.
            05  GRAND-TOTAL-THIS-YTD   PIC S9(7)V99   VALUE ZERO.
@@ -140,6 +146,8 @@
            05  FILLER              PIC X(2)    VALUE SPACE.
            05  CL-BRANCH-NUMBER    PIC X(2).
            05  FILLER              PIC X(4)    VALUE SPACE.
+           05  CL-SALESREP-NUMBER  PIC X(2).
+           05  FILLER              PIC X(3)    VALUE SPACE.
            05  CL-CUSTOMER-NUMBER  PIC 9(5).
            05  FILLER              PIC X(2)    VALUE SPACE.
            05  CL-CUSTOMER-NAME    PIC X(20).
@@ -151,11 +159,23 @@
            05  CL-CHANGE-AMOUNT    PIC ZZ,ZZ9.99-.
            05  FILLER              PIC X(4)    VALUE SPACE.
            05  CL-CHANGE-PERCENT   PIC ZZ9.9-.
-           05  FILLER              PIC X(53)   VALUE SPACE.
+           05  FILLER              PIC X(48)   VALUE SPACE.
+
+       01  SALESREP-TOTAL-LINE.
+           05  FILLER              PIC X(23)   VALUE SPACE.
+           05  FILLER              PIC X(15)   VALUE "SALESREP TOTAL".
+           05  STL-SALES-THIS-YTD  PIC ZZZ,ZZ9.99-.
+           05  FILLER              PIC X(3)    VALUE SPACE.
+           05  STL-SALES-LAST-YTD  PIC ZZZ,ZZ9.99-.
+           05  FILLER              PIC X(3)    VALUE SPACE.
+           05  STL-CHANGE-AMOUNT   PIC ZZZ,ZZ9.99-.
+           05  FILLER              PIC X(4)    VALUE SPACE.
+           05  STL-CHANGE-PERCENT  PIC ZZ9.9-.
+           05  FILLER              PIC X(45)   VALUE "  *".
 
        01  BRANCH-TOTAL-LINE.
            05  FILLER              PIC X(23)   VALUE SPACE.
-           05  FILLER              PIC X(15)   VALUE "BRANCH TOTAL".
+           05  FILLER              PIC X(20)   VALUE "BRANCH TOTAL".
            05  BTL-SALES-THIS-YTD  PIC ZZZ,ZZ9.99-.
            05  FILLER              PIC X(3)    VALUE SPACE.
            05  BTL-SALES-LAST-YTD  PIC ZZZ,ZZ9.99-.
@@ -163,7 +183,7 @@
            05  BTL-CHANGE-AMOUNT   PIC ZZZ,ZZ9.99-.
            05  FILLER              PIC X(4)    VALUE SPACE.
            05  BTL-CHANGE-PERCENT  PIC ZZ9.9-.
-           05  FILLER              PIC X(45)   VALUE "*".
+           05  FILLER              PIC X(40)   VALUE " **".
 
        01  GRAND-TOTAL-LINE-1.
            05  FILLER              PIC X(24)   VALUE SPACE.
@@ -175,7 +195,7 @@
            05  FILLER              PIC X(10)   VALUE ALL "=".
            05  FILLER              PIC X(3)    VALUE SPACE.
            05  FILLER              PIC X(7)    VALUE ALL "=".
-           05  FILLER              PIC X(45)   VALUE "**".
+           05  FILLER              PIC X(45)   VALUE "***".
 
        01  GRAND-TOTAL-LINE-2.
            05  FILLER              PIC X(36)   VALUE SPACE.
@@ -194,7 +214,7 @@
                 OUTPUT OUTPUT-RPT5000.
            PERFORM 100-FORMAT-REPORT-HEADING.
            PERFORM 300-PREPARE-SALES-LINES
-               UNTIL CUSTMAST-EOF-SWITCH = "Y".
+               UNTIL CUSTMAST-EOF.
            PERFORM 500-PRINT-GRAND-TOTALS.
            CLOSE CUSTMAST
                  OUTPUT-RPT5000.
@@ -210,37 +230,48 @@
 
        300-PREPARE-SALES-LINES.
            PERFORM 310-READ-CUSTOMER-RECORD.
-           IF CUSTMAST-EOF-SWITCH = "N"
-              IF FIRST-RECORD-SWITCH = "Y"
-                 PERFORM 320-PRINT-CUSTOMER-LINE
-                 MOVE "N" TO FIRST-RECORD-SWITCH
-                 MOVE CM-BRANCH-NUMBER TO OLD-BRANCH-NUMBER
-              ELSE
-                 IF CM-BRANCH-NUMBER > OLD-BRANCH-NUMBER
-                    PERFORM 360-PRINT-BRANCH-LINE
-                    PERFORM 320-PRINT-CUSTOMER-LINE
-                    MOVE CM-BRANCH-NUMBER TO OLD-BRANCH-NUMBER
-                 ELSE
-                    PERFORM 320-PRINT-CUSTOMER-LINE
-           ELSE
-              PERFORM 360-PRINT-BRANCH-LINE.
+           EVALUATE TRUE
+               WHEN CUSTMAST-EOF
+                   PERFORM 355-PRINT-SALESREP-LINE
+                   PERFORM 360-PRINT-BRANCH-LINE
+               WHEN FIRST-RECORD
+                   PERFORM 320-PRINT-CUSTOMER-LINE
+                   SET FIRST-RECORD TO FALSE
+                   MOVE CM-SALESREP-NUMBER TO OLD-SALESREP-NUMBER
+                   MOVE CM-BRANCH-NUMBER TO OLD-BRANCH-NUMBER
+               WHEN CM-BRANCH-NUMBER > OLD-BRANCH-NUMBER
+                   PERFORM 355-PRINT-SALESREP-LINE
+                   PERFORM 360-PRINT-BRANCH-LINE
+                   PERFORM 320-PRINT-CUSTOMER-LINE
+                   MOVE CM-SALESREP-NUMBER TO OLD-SALESREP-NUMBER
+                   MOVE CM-BRANCH-NUMBER TO OLD-BRANCH-NUMBER
+               WHEN CM-SALESREP-NUMBER > OLD-SALESREP-NUMBER
+                   PERFORM 355-PRINT-SALESREP-LINE
+                   PERFORM 320-PRINT-CUSTOMER-LINE
+                   MOVE CM-SALESREP-NUMBER TO OLD-SALESREP-NUMBER
+               WHEN OTHER
+                   PERFORM 320-PRINT-CUSTOMER-LINE
+           END-EVALUATE.
+
 
        310-READ-CUSTOMER-RECORD.
            READ CUSTMAST
                AT END
-                   MOVE "Y" TO CUSTMAST-EOF-SWITCH.
+                   SET CUSTMAST-EOF TO TRUE.
 
        320-PRINT-CUSTOMER-LINE.
            IF LINE-COUNT >= LINES-ON-PAGE
                PERFORM 330-PRINT-HEADING-LINES.
-           IF FIRST-RECORD-SWITCH = "Y"
+           IF FIRST-RECORD
               MOVE CM-BRANCH-NUMBER TO CL-BRANCH-NUMBER
+
            ELSE
               IF CM-BRANCH-NUMBER > OLD-BRANCH-NUMBER
                  MOVE CM-BRANCH-NUMBER TO CL-BRANCH-NUMBER
               ELSE
                  MOVE SPACE TO CL-BRANCH-NUMBER.
 
+           MOVE CM-SALESREP-NUMBER TO CL-SALESREP-NUMBER
            MOVE CM-CUSTOMER-NUMBER TO CL-CUSTOMER-NUMBER.
            MOVE CM-CUSTOMER-NAME   TO CL-CUSTOMER-NAME.
            MOVE CM-SALES-THIS-YTD  TO CL-SALES-THIS-YTD.
@@ -289,6 +320,28 @@
 
        350-WRITE-REPORT-LINE.
            WRITE PRINT-AREA.
+
+       355-PRINT-SALESREP-LINE.
+           MOVE SALESREP-TOTAL-THIS-YTD TO STL-SALES-THIS-YTD.
+           MOVE SALESREP-TOTAL-LAST-YTD TO STL-SALES-LAST-YTD.
+           COMPUTE WS-CHANGE-AMOUNT =
+                    SALESREP-TOTAL-THIS-YTD - SALESREP-TOTAL-LAST-YTD.
+           MOVE WS-CHANGE-AMOUNT TO STL-CHANGE-AMOUNT.
+           IF SALESREP-TOTAL-LAST-YTD = ZERO
+                MOVE 999.9 TO STL-CHANGE-PERCENT
+           ELSE
+              COMPUTE STL-CHANGE-PERCENT ROUNDED =
+                 WS-CHANGE-AMOUNT * 100 / SALESREP-TOTAL-LAST-YTD
+                  ON SIZE ERROR
+                      MOVE 999.9 TO STL-CHANGE-PERCENT.
+           MOVE SALESREP-TOTAL-LINE  TO PRINT-AREA.
+           MOVE 1 TO SPACE-CONTROL.
+           PERFORM 350-WRITE-REPORT-LINE.
+           MOVE 2 TO SPACE-CONTROL.
+           ADD SALESREP-TOTAL-THIS-YTD TO BRANCH-TOTAL-LAST-YTD.
+           ADD SALESREP-TOTAL-LAST-YTD TO BRANCH-TOTAL-LAST-YTD.
+           MOVE ZERO TO SALESREP-TOTAL-THIS-YTD.
+           MOVE ZERO TO SALESREP-TOTAL-LAST-YTD.
 
        360-PRINT-BRANCH-LINE.
 
